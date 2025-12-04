@@ -1,0 +1,123 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6.0.1
+        with:
+          fetch-depth: 0
+
+      # Dependencies: Java, PUML, Pandoc, XeLaTeX
+      - name: Setup Java for PUML
+        uses: actions/setup-java@v5.1.0
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          
+      - name: Install PUML (Choco)
+        uses: crazy-max/ghaction-chocolatey@v3
+        with:
+          args: install plantuml
+
+      - name: Setup Pandoc and XeLaTeX
+        uses: r-lib/actions/setup-pandoc@v2
+        with:
+          pandoc-version: 'latest'
+    
+      - name: Setup TinyTeX
+        uses: r-lib/actions/setup-tinytex@v2
+
+      - name: Install LaTeX Packages
+        run: |
+          tlmgr update --self
+          tlmgr install collection-fontsrecommended collection-latexrecommended mdframed needspace zref qtree etoolbox pict2e
+          tlmgr list --only-installed
+        shell: powershell
+
+        # Build Artifacts
+      - name: Generate PUML Diagrams
+        run: |
+          plantuml -tpng "diagramme.puml" -o "."
+          plantuml -tpng "diagrammeclass.puml" -o "."
+          plantuml -tpng "diagrammeETPost.puml" -o "."
+          plantuml -tpng "diagrammeETMembre.puml" -o "."
+        shell: powershell
+      
+      - name: Sleep Timer
+        run: Start-Sleep -Seconds 2
+        shell: powershell
+
+      - name: Debug - List files in directory
+        run: |
+          Write-Host "Current directory: $(Get-Location)"
+          Write-Host "`nAll PNG files:"
+          Get-ChildItem -Filter "*.png" -Recurse | ForEach-Object { Write-Host "  $($_.FullName)" }
+          Write-Host "`nAll files in root:"
+          Get-ChildItem | ForEach-Object { Write-Host "  $($_.Name)" }
+        shell: powershell
+
+      - name: Convert Markdown to PDF
+        run: pandoc tp2.md -o tp2.pdf --pdf-engine=xelatex --variable mainfont="Times New Roman" --variable geometry:margin=1in -H header.tex
+        shell: powershell
+
+        # Release
+      - name: Calculate Release Version
+        id: versioning
+        run: |
+          # Find the latest tag matching vX.Y.Z pattern, sorting descending by version
+          $LATEST_TAG = git tag --sort=-v:refname --list "v[0-9]*.[0-9]*.[0-9]*" | Select-Object -First 1
+          
+          if ([string]::IsNullOrEmpty($LATEST_TAG)) {
+            $NEXT_VERSION = "v1.0.0"
+            Write-Host "No existing tags found. Starting at v1.0.0."
+          } else {
+            # Extract version components
+            $versionParts = $LATEST_TAG -replace '^v', '' -split '\.'
+            $major = [int]$versionParts[0]
+            $minor = [int]$versionParts[1]
+            $patch = [int]$versionParts[2]
+            
+            # Increment patch version
+            $patch++
+            
+            # Construct the new version tag
+            $NEXT_VERSION = "v$major.$minor.$patch"
+            Write-Host "Latest tag found: $LATEST_TAG"
+          }
+          
+          Write-Host "Calculated next version: $NEXT_VERSION"
+          echo "RELEASE_VERSION=$NEXT_VERSION" >> $env:GITHUB_ENV
+        shell: powershell
+          
+      - name: Create GitHub Release and Upload Artifacts
+        uses: softprops/action-gh-release@v2.5.0
+        with:
+          tag_name: ${{ env.RELEASE_VERSION }}
+          name: Automated Release ${{ env.RELEASE_VERSION }}
+          body: |
+            Automated release generated from commit ${{ github.sha }}
+            
+            ## Generated Artifacts
+            - PDF Documentation (tp2.pdf)
+            - PlantUML Diagrams (PNG format)
+          files: |
+            tp2.pdf
+            diagramme.png
+            diagrammeclass.png
+            diagrammeETPost.png
+            diagrammeETMembre.png
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+       
