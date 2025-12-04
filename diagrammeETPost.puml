@@ -1,0 +1,23 @@
+@startuml
+hide empty description
+
+[*] --> Publié : Création
+
+state Publié {
+    
+    state "Éditable (T < 30min)" as Editable
+    state "Verrouillé (T > 30min)" as Locked
+
+    [*] --> Editable
+    
+    Editable --> Editable : Modification par l'auteur
+    Editable --> Locked : Délai 30 min écoulé
+}
+
+Publié --> Supprimé : Suppression par l'auteur
+Publié --> Modéré : Censure par le Modérateur
+
+Supprimé --> [*]
+Modéré --> [*]
+
+@enduml

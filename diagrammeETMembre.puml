@@ -1,0 +1,26 @@
+@startuml
+hide empty description
+
+[*] --> Inscrit : Validation inscription
+
+state Inscrit {
+    
+    state Actif {
+        [*] --> Déconnecté
+        Déconnecté --> Connecté : S'authentifier
+        Connecté --> Déconnecté : Se déconnecter / Timeout
+    }
+    
+    ' Definition simple sans accolades
+    state Banni
+    note right of Banni : Accès refusé
+
+    [*] --> Actif
+    Actif --> Banni : Décision Modérateur (Durée définie)
+    Banni --> Actif : Fin du bannissement
+}
+
+Inscrit --> Supprimé : Suppression par Admin
+Supprimé --> [*]
+
+@enduml

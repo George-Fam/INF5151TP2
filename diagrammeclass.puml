@@ -1,0 +1,39 @@
+@startuml
+skinparam dpi 150
+skinparam classAttributeIconSize 0
+hide empty members
+
+class Forum
+class Dossier
+class Topic
+class Post
+class Membre
+class Moderateur
+class Administrateur
+class MessagePrive
+class Evenement
+
+' --- Relations ---
+
+' Hiérarchie des utilisateurs
+Membre <|-- Moderateur
+Moderateur <|-- Administrateur
+
+' Structure du Forum
+Forum "1" *-- "1..*" Dossier : Contient
+Dossier "1" *-- "0..*" Topic : Organise
+Topic "1" *-- "1..*" Post : Est composé de
+
+' Auteurs et Propriétaires
+Membre "1" -- "0..*" Topic : Crée >
+Membre "1" -- "0..*" Post : Écrit >
+
+' Messagerie
+Membre "1" -- "0..*" MessagePrive : Expédie >
+Membre "1" -- "0..*" MessagePrive : Reçoit >
+
+' Calendrier
+Membre "1" -- "0..*" Evenement : Planifie >
+Forum "1" *-- "0..*" Evenement : Héberge
+
+@enduml

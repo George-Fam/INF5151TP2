@@ -1,0 +1,111 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam dpi 150
+skinparam Padding 15
+skinparam ActorPadding 20
+skinparam BoxPadding 20
+skinparam UsecasePadding 20
+skinparam ComponentSpacing 25
+skinparam PackagePadding 25
+skinparam ParticipantPadding 30
+skinparam RoundCorner 20
+
+' --- Définition des Acteurs ---
+actor "Non-Membre" as NM	#LightBlue
+actor "Membre" as M	#LightBlue
+actor "Modérateur" as MOD	#LightBlue
+actor "Administrateur" as ADMIN	#LightBlue
+actor "Temps" as T	#LightBlue
+
+' --- Héritage des Acteurs ---
+NM <|-- M
+M <|-- MOD
+MOD <|-- ADMIN
+
+rectangle "Système de Vente et Achat" {
+	' --- Accès Visiteur ---
+	usecase "UC01 - S’inscrire" as UC01
+	usecase "UC03 - Consulter les topics" as UC03
+
+	' --- Accès Membre (Base) ---
+	usecase "UC02 - S'authentifier" as UC02
+	usecase "UC04 - Rechercher" as UC04
+	usecase "UC05 - Gérer son profil" as UC05
+
+	' --- Gestion Messages Privés (Abstrait) ---
+	usecase "UC06 - Gérer ses messages privés" as UC06 <<abstract>>
+	usecase "UC06.1 - Envoyer un message privé" as UC06_1
+	usecase "UC06.2 - Consulter ses messages" as UC06_2
+	usecase "UC06.3 - Nettoyer sa boîte" as UC06_3
+
+	' Relations d'héritage (Généralisation)
+	UC06 <|-- UC06_1
+	UC06 <|-- UC06_2
+	UC06 <|-- UC06_3
+
+	' --- Gestion Contenu ---
+	usecase "UC07 - Créer un topic" as UC07
+	usecase "UC08 - Créer un post" as UC08
+	usecase "UC09 - Éditer son post" as UC09
+
+	' Relation d'inclusion
+	UC07 ..> UC08 : <<include>>
+
+	' --- Calendrier (Abstrait) ---
+	usecase "UC10 - Gérer le calendrier" as UC10 <<abstract>>
+	usecase "UC10.1 - Consulter le calendrier" as UC10_1
+	usecase "UC10.2 - Ajouter un événement" as UC10_2
+
+	' Relations d'héritage
+	UC10 <|-- UC10_1
+	UC10 <|-- UC10_2
+
+	' --- Modération (Abstrait) ---
+	usecase "UC11 - Modérer le contenu" as UC11 <<abstract>>
+	usecase "UC11.1 - Supprimer post inapproprié" as UC11_1
+	usecase "UC11.2 - Fermer un topic" as UC11_2
+	usecase "UC11.3 - Avertir un membre" as UC11_3
+	usecase "UC11.4 - Bannir un membre" as UC11_4
+
+	' Relations d'héritage
+	UC11 <|-- UC11_1
+	UC11 <|-- UC11_2
+	UC11 <|-- UC11_3
+	UC11 <|-- UC11_4
+
+	' --- Administration (Abstrait) ---
+	usecase "UC12 - Administrer les membres" as UC12 <<abstract>>
+	usecase "UC12.1 - Créer un compte spécial" as UC12_1
+	usecase "UC12.2 - Supprimer un compte" as UC12_2
+
+	' Relations d'héritage
+	UC12 <|-- UC12_1
+	UC12 <|-- UC12_2
+}
+	' --- Connexions Acteurs / Cas d'Utilisation ---
+
+	' Non-Membre
+	NM --> UC01
+	NM --> UC03
+
+	' Membre (Hérite de NM pour UC03, mais a ses propres UC)
+	M --> UC02
+	M --> UC04
+	M --> UC05
+	M --> UC06
+	M --> UC07
+	M --> UC08
+	M --> UC09
+	M --> UC10
+
+	' Modérateur (Hérite de M)
+	MOD --> UC11
+
+	' Administrateur (Hérite de MOD)
+	ADMIN --> UC12
+
+	' Acteur Temps
+	T --> UC09
+
+@enduml
